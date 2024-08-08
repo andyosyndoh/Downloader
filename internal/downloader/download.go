@@ -1,7 +1,6 @@
 package downloader
 
 import (
-	"downloaderex/internal/flags"
 	"downloaderex/internal/rateLimiter"
 	"fmt"
 	"io"
@@ -31,14 +30,14 @@ func OneDownload(file, url, limit string) {
 
 	contentLength := resp.ContentLength
 	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
-	outputFile := ""
-	if flags.OutputFileFlag(os.Args[1:]) {
-		outputFile = flags.GetFlagInput(os.Args[1])
-	} else {
+	outputFile := file
+
+	if file == "" {
 		urlParts := strings.Split(fileURL, "/")
 		fileName := urlParts[len(urlParts)-1]
 		outputFile = "./" + fileName
 	}
+
 	fmt.Printf("Saving file to: %s\n", outputFile)
 
 	out, err := os.Create(outputFile)

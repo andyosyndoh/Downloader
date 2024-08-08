@@ -1,6 +1,8 @@
 package fileManager
 
 import (
+	"downloaderex/internal/flags"
+	"downloaderex/internal/rateLimiter"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +15,7 @@ func logToFile(logFile *os.File, message string) {
 	logFile.WriteString(message + "\n")
 }
 
-func Logger() {
+func Logger(file, url, limit string) {
 	// Open log file
 	logFile, err := os.OpenFile("wget-log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -21,15 +23,11 @@ func Logger() {
 		return
 	}
 	defer logFile.Close()
-
-	// Get the URL from the command-line argument
-	fileURL := os.Args[2]
-
-	// Record the start time
+	fileURL := url
 	startTime := time.Now()
+
 	logToFile(logFile, fmt.Sprintf("Start at %s", startTime.Format("2006-01-02 15:04:05")))
 
-	// Send a GET request to the specified URL
 	resp, err := http.Get(fileURL)
 	if err != nil {
 		logToFile(logFile, fmt.Sprintf("Error downloading file: %v", err))
@@ -37,57 +35,67 @@ func Logger() {
 	}
 	defer resp.Body.Close()
 
-	// Check the status code
 	if resp.StatusCode != http.StatusOK {
-		logToFile(logFile, fmt.Sprintf("Error: status %s", resp.Status))
+		logToFile(logFile, fmt.Sprintf("Error: status %s\n", resp.Status))
 		return
 	}
 	logToFile(logFile, fmt.Sprintf("Sending request, awaiting response... status %s", resp.Status))
 
-	// Get the content length
 	contentLength := resp.ContentLength
-	logToFile(logFile, fmt.Sprintf("Content size: %d [~%.2fMB]", contentLength, float64(contentLength)/1024/1024))
+	logToFile(logFile, fmt.Sprintf("Content size: %d bytes [~%.2fMB]", contentLength, float64(contentLength)/1024/1024))
 
 	outputFile := ""
-
-	urlParts := strings.Split(fileURL, "/")
-	fileName := urlParts[len(urlParts)-1]
-	outputFile = "./" + fileName
-
+	if flags.OutputFileFlag(os.Args[1:]) {
+		outputFile = flags.GetFlagInput(os.Args[1])
+	} else {
+		urlParts := strings.Split(fileURL, "/")
+		fileName := urlParts[len(urlParts)-1]
+		outputFile = "./" + fileName
+	}
 	logToFile(logFile, fmt.Sprintf("Saving file to: %s", outputFile))
 
-	// Create a new file to save the downloaded content
 	out, err := os.Create(outputFile)
 	if err != nil {
-		logToFile(logFile, fmt.Sprintf("Error creating file: %v", err))
+		fmt.Sprintln("Error creating file:", err)
 		return
 	}
 	defer out.Close()
 
-	// Buffer to hold chunks of data being read
+	var reader io.Reader
+
+	if limit != "" {
+		reader = rateLimiter.NewRateLimitedReader(resp.Body, limit)
+	} else {
+		reader = resp.Body
+	}
+
 	buffer := make([]byte, 32*1024) // 32 KB buffer size
+	var downloaded int64
 
 	for {
-		// Read a chunk of data from the response body
-		n, err := resp.Body.Read(buffer)
+		n, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
 			logToFile(logFile, fmt.Sprintf("Error reading response body: %v", err))
 			return
 		}
-		if n == 0 {
+
+		if n > 0 {
+			if _, err := out.Write(buffer[:n]); err != nil {
+				logToFile(logFile, fmt.Sprintf("Error writing to file: %v", err))
+				return
+			}
+			// Update the downloaded size
+			downloaded += int64(n)
+		}
+
+		if downloaded >= contentLength {
 			break
 		}
-
-		// Write the chunk to the file
-		if _, err := out.Write(buffer[:n]); err != nil {
-			logToFile(logFile, fmt.Sprintf("Error writing to file: %v", err))
-			return
-		}
-
 	}
 
-	// Record the end time
+	fmt.Sprintln() // Move to the next line after download completes
+
 	endTime := time.Now()
 	logToFile(logFile, fmt.Sprintf("Downloaded [%s]", fileURL))
-	logToFile(logFile, fmt.Sprintf("Finished at %s", endTime.Format("2006-01-02 15:04:05")))
+	logToFile(logFile, fmt.Sprintf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05")))
 }
