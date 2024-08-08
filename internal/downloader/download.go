@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"downloaderex/internal/flags"
+	"downloaderex/internal/rateLimiter"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func OneDownload(file, url string) {
+func OneDownload(file, url, limit string) {
 	fileURL := url
 	startTime := time.Now()
 	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
@@ -46,6 +47,13 @@ func OneDownload(file, url string) {
 		return
 	}
 	defer out.Close()
+	var reader io.Reader
+
+	if limit != "" {
+		reader = rateLimiter.NewRateLimitedReader(resp.Body, limit)
+	} else {
+		reader = resp.Body
+	}
 
 	buffer := make([]byte, 32*1024) // 32 KB buffer size
 	var downloaded int64
@@ -53,7 +61,7 @@ func OneDownload(file, url string) {
 
 	fmt.Print("Downloading... ")
 	for {
-		n, err := resp.Body.Read(buffer)
+		n, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
 			fmt.Println("Error reading response body:", err)
 			return
