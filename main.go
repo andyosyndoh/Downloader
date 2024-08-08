@@ -1,6 +1,7 @@
 package main
 
 import (
+	"downloaderex/internal/background"
 	"downloaderex/internal/downloader"
 	"downloaderex/internal/fileManager"
 	"downloaderex/internal/flags"
@@ -20,6 +21,8 @@ func main() {
 	url := ""
 	file := ""
 	rateLimit := ""
+	var workInBackground bool = false
+	var log bool = false
 
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "--rate-limit=") {
@@ -31,6 +34,10 @@ func main() {
 			// You can combine path with file if necessary
 		} else if strings.HasPrefix(arg, "http") {
 			url = arg
+		} else if strings.HasPrefix(arg, "-B") {
+			workInBackground = true
+		} else if arg == "-b" {
+			log = true
 		}
 	}
 
@@ -46,9 +53,12 @@ func main() {
 	}
 
 	// Handle logger flag
-	if len(os.Args) == 3 && os.Args[1] == "-B" {
-		fileManager.Logger()
-		fmt.Println("Output will be written to \"wget-log\"")
+	if workInBackground {
+		background.DownloadInBackground(file, url, rateLimit)
+		return
+	}
+	if log {
+		fileManager.Logger(file, url, rateLimit)
 		return
 	}
 
