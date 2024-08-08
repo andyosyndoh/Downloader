@@ -9,24 +9,25 @@ func OutputFileFlag(args []string) bool {
 }
 
 func OutputAndPath(args []string) bool {
-
-	if (strings.HasPrefix(args[0], "-O=") &&
-		strings.HasPrefix(args[1], "-P=")) ||
-		(strings.HasPrefix(args[1], "-O=") &&
-			strings.HasPrefix(args[2], "-P=")) {
-		return true
-	}
-	return false
+	return (strings.HasPrefix(args[0], "-O=") && strings.HasPrefix(args[1], "-P=")) ||
+		(strings.HasPrefix(args[1], "-O=") && strings.HasPrefix(args[2], "-P="))
 }
+
 func GetFlagInput(flagInput string) string {
+	return flagInput[3:]
+}
 
-	var input string
+func FlagType(args []string) []string {
+	var flagtype []string
 
-	switch flagInput[:3] {
-	case "-O=":
-		input = flagInput[3:]
-	case "-P=":
-		input = flagInput[3:]
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-O=") {
+			flagtype = append(flagtype, "-O=")
+		} else if strings.HasPrefix(arg, "-P=") {
+			flagtype = append(flagtype, "-P=")
+		} else if strings.HasPrefix(arg, "--rate-limit=") {
+			flagtype = append(flagtype, "--rate-limit=")
+		}
 	}
-	return input
+	return flagtype
 }
