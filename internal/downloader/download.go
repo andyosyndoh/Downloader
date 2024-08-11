@@ -1,16 +1,18 @@
 package downloader
 
 import (
-	"downloaderex/internal/rateLimiter"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"downloaderex/internal/rateLimiter"
 )
 
-func OneDownload(file, url, limit string) {
+func OneDownload(file, url, limit, directory string) {
 	fileURL := url
 	startTime := time.Now()
 	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
@@ -30,15 +32,31 @@ func OneDownload(file, url, limit string) {
 
 	contentLength := resp.ContentLength
 	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
-	outputFile := file
 
+	// Set the output file name
+	var outputFile string
 	if file == "" {
 		urlParts := strings.Split(fileURL, "/")
 		fileName := urlParts[len(urlParts)-1]
-		outputFile = "./" + fileName
+		outputFile = filepath.Join(directory, fileName)
+	} else {
+		outputFile = filepath.Join(directory, file)
 	}
 
-	fmt.Printf("Saving file to: %s\n", outputFile)
+	// Create the directory if it doesn't exist
+	if directory != "" {
+		err = os.MkdirAll(directory, 0o755)
+		if err != nil {
+			fmt.Println("Error creating directory:", err)
+			return
+		}
+	}
+	temp := ""
+	if directory == "" {
+		temp = "./"
+	}
+	
+	fmt.Printf("Saving file to: %s%s\n", temp,outputFile)
 
 	out, err := os.Create(outputFile)
 	if err != nil {
@@ -46,10 +64,10 @@ func OneDownload(file, url, limit string) {
 		return
 	}
 	defer out.Close()
-	var reader io.Reader
 
+	var reader io.Reader
 	if limit != "" {
-		reader = rateLimiter.NewRateLimitedReader(resp.Body, limit)
+		reader = rateLimiter.NewRateLimitedReader(resp.Body, limit) // Assuming rateLimiter is defined elsewhere
 	} else {
 		reader = resp.Body
 	}
@@ -97,6 +115,7 @@ func OneDownload(file, url, limit string) {
 		}
 	}
 
+	fmt.Println() // Move to the next line after download completes
 	fmt.Println() // Move to the next line after download completes
 
 	endTime := time.Now()

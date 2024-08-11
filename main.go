@@ -21,6 +21,7 @@ func main() {
 	url := ""
 	file := ""
 	rateLimit := ""
+	path := ""
 	var workInBackground bool = false
 	var log bool = false
 
@@ -30,8 +31,7 @@ func main() {
 		} else if strings.HasPrefix(arg, "-O=") {
 			file = flags.GetFlagInput(arg)
 		} else if strings.HasPrefix(arg, "-P=") {
-			// Handle path if needed
-			// You can combine path with file if necessary
+			path = flags.GetFlagInput(arg)
 		} else if strings.HasPrefix(arg, "http") {
 			url = arg
 		} else if strings.HasPrefix(arg, "-B") {
@@ -63,5 +63,5 @@ func main() {
 	}
 
 	// Start the download
-	downloader.OneDownload(file, url, rateLimit)
+	downloader.OneDownload(file, url, rateLimit, path)
 }
