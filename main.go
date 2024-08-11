@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"downloaderex/internal/background"
 	"downloaderex/internal/downloader"
 	"downloaderex/internal/fileManager"
 	"downloaderex/internal/flags"
-	"fmt"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -21,6 +22,8 @@ func main() {
 	url := ""
 	file := ""
 	rateLimit := ""
+	path := ""
+	sourcefile := ""
 	var workInBackground bool = false
 	var log bool = false
 
@@ -30,18 +33,19 @@ func main() {
 		} else if strings.HasPrefix(arg, "-O=") {
 			file = flags.GetFlagInput(arg)
 		} else if strings.HasPrefix(arg, "-P=") {
-			// Handle path if needed
-			// You can combine path with file if necessary
+			path = flags.GetFlagInput(arg)
 		} else if strings.HasPrefix(arg, "http") {
 			url = arg
 		} else if strings.HasPrefix(arg, "-B") {
 			workInBackground = true
 		} else if arg == "-b" {
 			log = true
+		} else if strings.HasPrefix(arg, "-i=") {
+			sourcefile = flags.GetFlagInput(arg)
 		}
 	}
 
-	if url == "" {
+	if url == "" && sourcefile == "" {
 		fmt.Println("Error: URL not provided.")
 		return
 	}
@@ -61,7 +65,19 @@ func main() {
 		fileManager.Logger(file, url, rateLimit)
 		return
 	}
+	if sourcefile != "" {
+		content, err := os.ReadFile(sourcefile)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		urls := strings.Split(string(content), "\n")
+		for _, url1 := range urls {
+			downloader.OneDownload(file, url1, rateLimit, path)
+		}
+		return
+	}
 
 	// Start the download
-	downloader.OneDownload(file, url, rateLimit)
+	downloader.OneDownload(file, url, rateLimit, path)
 }
