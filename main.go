@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"downloaderex/internal/background"
 	"downloaderex/internal/downloader"
 	"downloaderex/internal/fileManager"
 	"downloaderex/internal/flags"
-	"fmt"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 	file := ""
 	rateLimit := ""
 	path := ""
+	sourcefile := ""
 	var workInBackground bool = false
 	var log bool = false
 
@@ -38,9 +40,23 @@ func main() {
 			workInBackground = true
 		} else if arg == "-b" {
 			log = true
+		} else if strings.HasPrefix(arg, "-i=") {
+			sourcefile = flags.GetFlagInput(arg)
 		}
 	}
 
+	if sourcefile != "" {
+		content, err := os.ReadFile(sourcefile)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		urls := strings.Split(string(content), "\n")
+		for _, url1 := range urls {
+			downloader.OneDownload(file, url1, rateLimit, path)
+		}
+		return
+	}
 	if url == "" {
 		fmt.Println("Error: URL not provided.")
 		return
@@ -61,6 +77,7 @@ func main() {
 		fileManager.Logger(file, url, rateLimit)
 		return
 	}
+	
 
 	// Start the download
 	downloader.OneDownload(file, url, rateLimit, path)
