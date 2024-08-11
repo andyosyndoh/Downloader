@@ -55,8 +55,8 @@ func OneDownload(file, url, limit, directory string) {
 	if directory == "" {
 		temp = "./"
 	}
-	
-	fmt.Printf("Saving file to: %s%s\n", temp,outputFile)
+
+	fmt.Printf("Saving file to: %s%s\n", temp, outputFile)
 
 	out, err := os.Create(outputFile)
 	if err != nil {
