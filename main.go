@@ -66,15 +66,8 @@ func main() {
 		return
 	}
 	if sourcefile != "" {
-		content, err := os.ReadFile(sourcefile)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		urls := strings.Split(string(content), "\n")
-		for _, url1 := range urls {
-			downloader.OneDownload(file, url1, rateLimit, path)
-		}
+
+		downloader.DownloadMultipleFiles(sourcefile, file, rateLimit, path)
 		return
 	}
 
