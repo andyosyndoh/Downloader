@@ -13,6 +13,7 @@ import (
 )
 
 func OneDownload(file, url, limit, directory string) {
+	path := ExpandPath(directory)
 	fileURL := url
 	startTime := time.Now()
 	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
@@ -33,26 +34,27 @@ func OneDownload(file, url, limit, directory string) {
 	contentLength := resp.ContentLength
 	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
+	fmt.Println(path)
 	// Set the output file name
 	var outputFile string
 	if file == "" {
 		urlParts := strings.Split(fileURL, "/")
 		fileName := urlParts[len(urlParts)-1]
-		outputFile = filepath.Join(directory, fileName)
+		outputFile = filepath.Join(path, fileName)
 	} else {
-		outputFile = filepath.Join(directory, file)
+		outputFile = filepath.Join(path, file)
 	}
 
-	// Create the directory if it doesn't exist
-	if directory != "" {
-		err = os.MkdirAll(directory, 0o755)
+	// Create the path if it doesn't exist
+	if path != "" {
+		err = os.MkdirAll(path, 0o755)
 		if err != nil {
-			fmt.Println("Error creating directory:", err)
+			fmt.Println("Error creating path:", err)
 			return
 		}
 	}
 	temp := ""
-	if directory == "" {
+	if path == "" {
 		temp = "./"
 	}
 
@@ -120,5 +122,30 @@ func OneDownload(file, url, limit, directory string) {
 
 	endTime := time.Now()
 	fmt.Printf("Downloaded [%s]\n", fileURL)
-	fmt.Printf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Finished at %s", endTime.Format("2006-01-02 15:04:05"))
+}
+
+// ExpandPath expands shorthand notations to full paths
+func ExpandPath(path string) string {
+	// 1. Expand `~` to the home directory
+	if strings.HasPrefix(path, "~") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Println("Error finding home directory:", err)
+			return ""
+		}
+		path = strings.Replace(path, "~", homeDir, 1)
+	}
+
+	// 2. Expand environment variables like $HOME, $USER, etc.
+	path = os.ExpandEnv(path)
+
+	// 3. Convert relative paths (./ or ../) to absolute paths
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		fmt.Println("Error getting absolute path:", err)
+		return ""
+	}
+
+	return absPath
 }
