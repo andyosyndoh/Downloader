@@ -45,19 +45,7 @@ func main() {
 		}
 	}
 
-	if sourcefile != "" {
-		content, err := os.ReadFile(sourcefile)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		urls := strings.Split(string(content), "\n")
-		for _, url1 := range urls {
-			downloader.OneDownload(file, url1, rateLimit, path)
-		}
-		return
-	}
-	if url == "" {
+	if url == "" && sourcefile == "" {
 		fmt.Println("Error: URL not provided.")
 		return
 	}
@@ -77,7 +65,18 @@ func main() {
 		fileManager.Logger(file, url, rateLimit)
 		return
 	}
-	
+	if sourcefile != "" {
+		content, err := os.ReadFile(sourcefile)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		urls := strings.Split(string(content), "\n")
+		for _, url1 := range urls {
+			downloader.OneDownload(file, url1, rateLimit, path)
+		}
+		return
+	}
 
 	// Start the download
 	downloader.OneDownload(file, url, rateLimit, path)
