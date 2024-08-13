@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"downloaderex/internal/rateLimiter"
 )
@@ -40,8 +39,8 @@ func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
 
 func AsyncDownload(outputFileName, url, limit, directory string) {
 	path := ExpandPath(directory)
-	startTime := time.Now()
-	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
+	// startTime := time.Now()
+	// fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -55,8 +54,8 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 		return
 	}
 
-	contentLength := resp.ContentLength
-	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
+	// contentLength := resp.ContentLength
+	// fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
 	if outputFileName == "" {
 		urlParts := strings.Split(url, "/")
@@ -74,11 +73,14 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 		}
 	}
 
-	fmt.Printf("Saving file to: %s\n", outputFileName)
+	// fmt.Printf("Saving file to: %s\n", outputFileName)
+	var out *os.File
+	var err1 error
 
-	out, err := os.Create(outputFileName)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
+	// Open or create the file
+	out, err1 = os.Create(outputFileName)
+	if err1 != nil {
+		fmt.Printf("Error creating directory: %s\n", err1)
 		return
 	}
 	defer out.Close()
@@ -112,7 +114,7 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 
 	fmt.Println() // Move to the next line after download completes
 
-	endTime := time.Now()
+	// endTime := time.Now()
 	fmt.Printf("Downloaded [%s]\n", url)
-	fmt.Printf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
+	// fmt.Printf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
 }
