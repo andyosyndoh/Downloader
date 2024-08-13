@@ -9,6 +9,7 @@ import (
 	"downloaderex/internal/downloader"
 	"downloaderex/internal/fileManager"
 	"downloaderex/internal/flags"
+	"downloaderex/internal/mirror"
 )
 
 func main() {
@@ -26,6 +27,7 @@ func main() {
 	sourcefile := ""
 	var workInBackground bool = false
 	var log bool = false
+	mirroring := false
 
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "--rate-limit=") {
@@ -42,11 +44,21 @@ func main() {
 			log = true
 		} else if strings.HasPrefix(arg, "-i=") {
 			sourcefile = flags.GetFlagInput(arg)
+		} else if strings.HasPrefix(arg, "--mirror") {
+			mirroring = true
+			break
 		}
 	}
 
-	if url == "" && sourcefile == "" {
-		fmt.Println("Error: URL not provided.")
+	// if url == "" && sourcefile == "" {
+	// 	fmt.Println("Error: URL not provided.")
+	// 	return
+	// }
+
+	if mirroring {
+		url, flagInput := mirror.GetMirrorUrl(args)
+
+		mirror.DownloadPage(url, flagInput)
 		return
 	}
 
