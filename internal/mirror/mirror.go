@@ -3,6 +3,7 @@ package mirror
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -11,18 +12,33 @@ import (
 	"golang.org/x/net/html"
 )
 
-func extractDomain(url string) string {
-	// Logic to extract domain from the URL
-	// This can be a simple implementation
-	parts := strings.Split(strings.TrimPrefix(url, "https://"), "/")
-	if len(parts) > 0 {
-		return parts[0]
+var (
+	visited = make(map[string]bool)
+	mu      sync.Mutex
+)
+
+func extractDomain(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
 	}
-	return ""
+	return u.Hostname(), nil
 }
 
 func DownloadPage(url, rejectTypes string) {
-	domain := extractDomain(url)
+	domain, err := extractDomain(url)
+	if err != nil {
+		fmt.Println("Cold not extract domain name for:", url, "Error: ", err)
+		return
+	}
+	// Check if URL has already been visited
+	mu.Lock()
+	if visited[url] {
+		mu.Unlock()
+		return
+	}
+	visited[url] = true
+	mu.Unlock()
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -35,7 +51,6 @@ func DownloadPage(url, rejectTypes string) {
 		fmt.Printf("Error: status %s\n", resp.Status)
 		return
 	}
-
 	// Read the response body and parse it
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
@@ -48,26 +63,34 @@ func DownloadPage(url, rejectTypes string) {
 	var f func(*html.Node)
 	f = func(n *html.Node) {
 		if n.Type == html.ElementNode {
-			if n.Data == "a" || n.Data == "link" || n.Data == "img" {
-				for _, attr := range n.Attr {
-					// Use the base URL derived from the current page
-					if (n.Data == "a" || n.Data == "link") && attr.Key == "href" {
-						wg.Add(1) // Increment the WaitGroup counter
-						go func(link string) {
-							defer wg.Done() // Decrement the counter when done
-							// Resolve the base URL for links
+			var link string
+			for _, attr := range n.Attr {
+				if (n.Data == "a" && attr.Key == "href") ||
+					(n.Data == "img" && attr.Key == "src") ||
+					(n.Data == "script" && attr.Key == "src") ||
+					(n.Data == "link" && attr.Key == "href") {
+
+					link = attr.Val
+					if link != "" {
+						wg.Add(1)
+						go func(link string, tagName string) {
+							defer wg.Done()
 							baseURL := resolveURL(url, link)
-							downloadAsset(baseURL, domain, rejectTypes)
-						}(attr.Val) // Pass the URL
-					}
-					if n.Data == "img" && attr.Key == "src" {
-						wg.Add(1) // Increment the WaitGroup counter
-						go func(src string) {
-							defer wg.Done() // Decrement the counter when done
-							// Resolve the base URL for images
-							baseURL := resolveURL(url, src)
-							downloadAsset(baseURL, domain, rejectTypes)
-						}(attr.Val) // Pass the URL
+							baseURLDomain, err := extractDomain(baseURL)
+							if err != nil {
+								fmt.Println("Cold not extract domain name for:", baseURLDomain, "Error: ", err)
+								return
+							}
+
+							if baseURLDomain == domain {
+								if tagName == "a" {
+									DownloadPage(baseURL, rejectTypes) // Recursively download HTML pages
+									downloadAsset(baseURL, domain, rejectTypes)
+								} else {
+									downloadAsset(baseURL, domain, rejectTypes) // Download assets like images, scripts, etc.
+								}
+							}
+						}(link, n.Data)
 					}
 				}
 			}
@@ -85,34 +108,26 @@ func DownloadPage(url, rejectTypes string) {
 }
 
 func downloadAsset(fileURL, domain, rejectTypes string) {
-	// Check if the URL is valid after resolving
 	if fileURL == "" || !strings.HasPrefix(fileURL, "http") {
 		fmt.Printf("Invalid URL: %s\n", fileURL)
 		return
 	}
 
-	// Check if file type is rejected
 	if isRejected(fileURL, rejectTypes) {
 		fmt.Printf("Skipping rejected file: %s\n", fileURL)
 		return
 	}
 
 	fmt.Printf("Downloading: %s\n", fileURL)
-
-	// Call your OneDownload function here
 	downloader.AsyncDownload("", fileURL, "", domain)
 }
 
 func resolveURL(base, rel string) string {
-	// If the relative URL starts with a scheme, return it as is.
 	if strings.HasPrefix(rel, "http") {
 		return rel
 	}
 
-	// Handle protocol-relative URLs (starting with //)
-	if strings.HasPrefix(rel, "//") && !strings.Contains(rel[2:], "/") {
-		// Determine the protocol of the base URL
-
+	if strings.HasPrefix(rel, "//") {
 		protocol := "http:"
 		if strings.HasPrefix(base, "https") {
 			protocol = "https:"
@@ -120,27 +135,18 @@ func resolveURL(base, rel string) string {
 		return protocol + rel
 	}
 
-	// Handle relative paths
 	if strings.HasPrefix(rel, "/") {
-		// For absolute paths, return base URL without the last segment
 		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
 	}
 	if strings.HasPrefix(rel, "./") {
-		// For absolute paths, return base URL without the last segment
 		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
 	}
-	// Handle paths that start with // but are not protocol-relative (e.g., //css/style.css)
 	if strings.HasPrefix(rel, "//") && strings.Contains(rel[2:], "/") {
-
 		baseParts := strings.Split(base, "/")
-		return baseParts[0] + "//" + baseParts[2] + rel[1:] // Treat it as a root-relative path
+		return baseParts[0] + "//" + baseParts[2] + rel[1:]
 	}
 
-	// Remove the last part of the base URL
 	baseParts := strings.Split(base, "/")
-	// baseParts = baseParts[:len(baseParts)-1] // remove last part
-
-	// Append the relative URL
 	return baseParts[0] + "//" + baseParts[2] + "/" + rel
 }
 

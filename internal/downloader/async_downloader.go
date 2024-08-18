@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,14 @@ import (
 
 	"downloaderex/internal/rateLimiter"
 )
+
+// Global map to keep track of processed URLs
+var processedURLs = struct {
+	sync.Mutex
+	urls map[string]bool
+}{
+	urls: make(map[string]bool),
+}
 
 func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
 	file, err := os.Open(filePath)
@@ -37,12 +46,33 @@ func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
 	wg.Wait()
 }
 
-func AsyncDownload(outputFileName, url, limit, directory string) {
-	path := ExpandPath(directory)
+func AsyncDownload(outputFileName, urlStr, limit, directory string) {
+	// Check if the URL has already been processed
+	processedURLs.Lock()
+	if processed, exists := processedURLs.urls[urlStr]; exists && processed {
+		processedURLs.Unlock()
+		fmt.Printf("URL already processed: %s\n", urlStr)
+		return
+	}
+	processedURLs.Unlock()
+
 	// startTime := time.Now()
 	// fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
-	resp, err := http.Get(url)
+	// Parse the URL to get the path components
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return
+	}
+	// Create the necessary directories based on the URL path
+	rootPath := ExpandPath(directory)
+	pathComponents := strings.Split(strings.Trim(u.Path, "/"), "/")
+	relativeDirPath := filepath.Join(pathComponents[:len(pathComponents)-1]...)
+	fullDirPath := filepath.Join(rootPath, relativeDirPath)
+	fileName := pathComponents[len(pathComponents)-1]
+
+	resp, err := http.Get(urlStr)
 	if err != nil {
 		fmt.Println("Error downloading file:", err)
 		return
@@ -54,33 +84,38 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 		return
 	}
 
+	contentType := resp.Header.Get("Content-Type")
 	// contentLength := resp.ContentLength
 	// fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
 	if outputFileName == "" {
-		urlParts := strings.Split(url, "/")
-		fileName := urlParts[len(urlParts)-1]
-		outputFileName = filepath.Join(path, fileName)
+		if fileName == "" {
+			if contentType == "text/html" {
+				fileName = "index.html"
+			}
+		} else if contentType == "text/html" && !strings.HasSuffix(fileName, ".html") {
+			fileName += ".html"
+		}
+		outputFileName = filepath.Join(fullDirPath, fileName)
 	} else {
-		outputFileName = filepath.Join(path, outputFileName)
+		if contentType == "text/html" && !strings.HasSuffix(outputFileName, ".html") {
+			outputFileName += ".html"
+		}
+		outputFileName = filepath.Join(fullDirPath, outputFileName)
 	}
 
-	if path != "" {
-		err = os.MkdirAll(path, 0o755)
+	if fullDirPath != "" {
+		err = os.MkdirAll(fullDirPath, 0o755)
 		if err != nil {
 			fmt.Println("Error creating path:", err)
 			return
 		}
 	}
 
-	// fmt.Printf("Saving file to: %s\n", outputFileName)
 	var out *os.File
-	var err1 error
-
-	// Open or create the file
-	out, err1 = os.Create(outputFileName)
-	if err1 != nil {
-		fmt.Printf("Error creating directory: %s\n", err1)
+	out, err = os.Create(outputFileName)
+	if err != nil {
+		fmt.Printf("Error creating file: %s\n", err)
 		return
 	}
 	defer out.Close()
@@ -115,6 +150,11 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 	fmt.Println() // Move to the next line after download completes
 
 	// endTime := time.Now()
-	fmt.Printf("Downloaded [%s]\n", url)
+	fmt.Printf("Downloaded [%s]\n", urlStr)
 	// fmt.Printf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
+
+	// Mark the URL as processed
+	processedURLs.Lock()
+	processedURLs.urls[urlStr] = true
+	processedURLs.Unlock()
 }
