@@ -65,6 +65,7 @@ func AsyncDownload(outputFileName, urlStr, limit, directory string) {
 		fmt.Println("Error parsing URL:", err)
 		return
 	}
+
 	// Create the necessary directories based on the URL path
 	rootPath := ExpandPath(directory)
 	pathComponents := strings.Split(strings.Trim(u.Path, "/"), "/")
@@ -89,10 +90,8 @@ func AsyncDownload(outputFileName, urlStr, limit, directory string) {
 	// fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
 	if outputFileName == "" {
-		if fileName == "" {
-			if contentType == "text/html" {
-				fileName = "index.html"
-			}
+		if fileName == "" || strings.HasSuffix(urlStr, "/") {
+			fileName = "index.html"
 		} else if contentType == "text/html" && !strings.HasSuffix(fileName, ".html") {
 			fileName += ".html"
 		}
@@ -105,10 +104,12 @@ func AsyncDownload(outputFileName, urlStr, limit, directory string) {
 	}
 
 	if fullDirPath != "" {
-		err = os.MkdirAll(fullDirPath, 0o755)
-		if err != nil {
-			fmt.Println("Error creating path:", err)
-			return
+		if _, err := os.Stat(fullDirPath); os.IsNotExist(err) {
+			err = os.MkdirAll(fullDirPath, 0o755)
+			if err != nil {
+				fmt.Println("Error creating path:", err)
+				return
+			}
 		}
 	}
 

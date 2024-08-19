@@ -14,21 +14,28 @@ import (
 
 // Global variables to keep track of visited URLs and synchronization
 var (
-	visited = make(map[string]bool)
-	mu      sync.Mutex // Mutex for thread-safe operations on 'visited'
+	visitedPages  = make(map[string]bool)
+	visitedAssets = make(map[string]bool)
+	muPages       sync.Mutex
+	muAssets      sync.Mutex
+	semaphore     = make(chan struct{}, 50)
 )
 
 // DownloadPage downloads a page and its assets, recursively visiting links
 func DownloadPage(url, rejectTypes string) {
 	domain, err := extractDomain(url)
 	if err != nil {
-		fmt.Println("Cold not extract domain name for:", url, "Error: ", err)
+		fmt.Println("Could not extract domain name for:", url, "Error:", err)
 		return
 	}
-	// Check if URL has already been visited
-	if !shouldDownload(url) {
+
+	muPages.Lock()
+	if visitedPages[url] {
+		muPages.Unlock()
 		return
 	}
+	visitedPages[url] = true
+	muPages.Unlock()
 
 	// Fetch and get the HTML of the page
 	doc, err := fetchAndParsePage(url)
@@ -39,6 +46,9 @@ func DownloadPage(url, rejectTypes string) {
 
 	// Function to handle links and assets found on the page
 	handleLink := func(link, tagName string) {
+		semaphore <- struct{}{}        // Acquire a spot in the semaphore
+		defer func() { <-semaphore }() // Release the spot
+
 		baseURL := resolveURL(url, link)
 		baseURLDomain, err := extractDomain(baseURL)
 		if err != nil {
@@ -78,8 +88,6 @@ func DownloadPage(url, rejectTypes string) {
 
 	// Wait for all downloads to complete
 	wg.Wait()
-
-	fmt.Println("Mirroring completed.")
 }
 
 func extractDomain(urlStr string) (string, error) {
@@ -88,17 +96,6 @@ func extractDomain(urlStr string) (string, error) {
 		return "", err
 	}
 	return u.Hostname(), nil
-}
-
-// shouldDownload determines if a URL should be downloaded based on whether it has been visited
-func shouldDownload(url string) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	if visited[url] {
-		return false
-	}
-	visited[url] = true
-	return true
 }
 
 // fetchAndParsePage fetches the content of the URL and parses it as HTML
@@ -125,6 +122,11 @@ func isValidAttribute(tagName, attrKey string) bool {
 }
 
 func resolveURL(base, rel string) string {
+	// Remove fragment identifiers (anything starting with #)
+	if fragmentIndex := strings.Index(rel, "#"); fragmentIndex != -1 {
+		rel = rel[:fragmentIndex]
+	}
+
 	if strings.HasPrefix(rel, "http") {
 		return rel
 	}
@@ -153,6 +155,14 @@ func resolveURL(base, rel string) string {
 }
 
 func downloadAsset(fileURL, domain, rejectTypes string) {
+	muAssets.Lock()
+	if visitedAssets[fileURL] {
+		muAssets.Unlock()
+		return
+	}
+	visitedAssets[fileURL] = true
+	muAssets.Unlock()
+
 	if fileURL == "" || !strings.HasPrefix(fileURL, "http") {
 		fmt.Printf("Invalid URL: %s\n", fileURL)
 		return
