@@ -3,116 +3,173 @@ package mirror
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
-
-	"downloaderex/internal/downloader"
 
 	"golang.org/x/net/html"
 )
 
-func extractDomain(url string) string {
-	// Logic to extract domain from the URL
-	// This can be a simple implementation
-	parts := strings.Split(strings.TrimPrefix(url, "https://"), "/")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
-}
+// Global variables to keep track of visited URLs and synchronization
+var (
+	visitedPages  = make(map[string]bool)
+	visitedAssets = make(map[string]bool)
+	muPages       sync.Mutex
+	muAssets      sync.Mutex
+	semaphore     = make(chan struct{}, 50)
+	count         int
+)
 
+// DownloadPage downloads a page and its assets, recursively visiting links
 func DownloadPage(url, rejectTypes string) {
-	domain := extractDomain(url)
-
-	resp, err := http.Get(url)
+	domain, err := extractDomain(url)
 	if err != nil {
-		fmt.Println("Error fetching URL:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error: status %s\n", resp.Status)
+		fmt.Println("Could not extract domain name for:", url, "Error:", err)
 		return
 	}
 
-	// Read the response body and parse it
-	doc, err := html.Parse(resp.Body)
+	muPages.Lock()
+	if visitedPages[url] {
+		muPages.Unlock()
+		return
+	}
+	visitedPages[url] = true
+	muPages.Unlock()
+
+	// Fetch and get the HTML of the page
+	doc, err := fetchAndParsePage(url)
 	if err != nil {
-		fmt.Println("Error parsing HTML:", err)
+		fmt.Println("Error fetching or parsing page:", err)
 		return
 	}
 
-	// Find and download assets
-	var wg sync.WaitGroup
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.ElementNode {
-			if n.Data == "a" || n.Data == "link" || n.Data == "img" {
-				for _, attr := range n.Attr {
-					// Use the base URL derived from the current page
-					if (n.Data == "a" || n.Data == "link") && attr.Key == "href" {
-						wg.Add(1) // Increment the WaitGroup counter
-						go func(link string) {
-							defer wg.Done() // Decrement the counter when done
-							// Resolve the base URL for links
-							baseURL := resolveURL(url, link)
-							downloadAsset(baseURL, domain, rejectTypes)
-						}(attr.Val) // Pass the URL
+	// Function to handle links and assets found on the page
+	handleLink := func(link, tagName string) {
+		semaphore <- struct{}{}        // Acquire a spot in the semaphore
+		defer func() { <-semaphore }() // Release the spot
+
+		baseURL := resolveURL(url, link)
+
+		baseURLDomain, err := extractDomain(baseURL)
+		if err != nil {
+			fmt.Println("Could not extract domain name for:", baseURLDomain, "Error:", err)
+			return
+		}
+
+		if baseURLDomain == domain {
+			if tagName == "a" {
+				// Check if the baseURL is the root or equivalent to index.html
+				if strings.HasSuffix(baseURL, "/") || strings.HasSuffix(baseURL, "/index.html") {
+					// Ensure index.html is downloaded first
+					if !visitedPages["http://"+baseURLDomain+"/index.html"] {
+						DownloadPage("http://"+baseURLDomain+"/index.html", rejectTypes)
 					}
-					if n.Data == "img" && attr.Key == "src" {
-						wg.Add(1) // Increment the WaitGroup counter
-						go func(src string) {
-							defer wg.Done() // Decrement the counter when done
-							// Resolve the base URL for images
-							baseURL := resolveURL(url, src)
-							downloadAsset(baseURL, domain, rejectTypes)
-						}(attr.Val) // Pass the URL
+					// Recursively process other pages
+					DownloadPage(baseURL, rejectTypes)
+				} else {
+					// Process other pages as usual
+					DownloadPage(baseURL, rejectTypes)
+				}
+			}
+			// Download assets, regardless of index.html processing
+			downloadAsset(baseURL, domain, rejectTypes)
+		}
+	}
+	var wg sync.WaitGroup
+	var processNode func(n *html.Node)
+	processedPages := make(map[string]bool)
+
+	processNode = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			for _, attr := range n.Attr {
+				if isValidAttribute(n.Data, attr.Key) {
+					link := attr.Val
+					if link != "" {
+						baseURL := resolveURL(url, link)
+						baseURLDomain, err := extractDomain(baseURL)
+						if err != nil {
+							fmt.Println("Could not extract domain name for:", baseURLDomain, "Error:", err)
+							continue
+						}
+
+						// Process index.html first
+						if (strings.HasSuffix(url, ".com/") || strings.HasSuffix(url, ".com/index.html")) && count == 0 {
+							count++
+							if !processedPages["http://"+baseURLDomain+"/index.html"] {
+								wg.Add(1)
+								go func(link, tagName string) {
+									defer wg.Done()
+									handleLink(link, tagName)
+									processedPages[url] = true
+								}("http://"+baseURLDomain+"/index.html", n.Data)
+							}
+						}
+
+						wg.Add(1)
+						go func(link, tagName string) {
+							defer wg.Done()
+							handleLink(link, tagName)
+						}(link, n.Data)
 					}
 				}
 			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
+			processNode(c) // Recursively process child nodes
 		}
 	}
-	f(doc)
 
-	// Wait for all downloads to complete
+	// Start processing the document
+	processNode(doc)
+
+	// Wait for all goroutines to complete
 	wg.Wait()
 
-	fmt.Println("Mirroring completed.")
 }
 
-func downloadAsset(fileURL, domain, rejectTypes string) {
-	// Check if the URL is valid after resolving
-	if fileURL == "" || !strings.HasPrefix(fileURL, "http") {
-		fmt.Printf("Invalid URL: %s\n", fileURL)
-		return
+func extractDomain(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
+}
+
+// fetchAndParsePage fetches the content of the URL and parses it as HTML
+func fetchAndParsePage(url string) (*html.Node, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: status %s", resp.Status)
 	}
 
-	// Check if file type is rejected
-	if isRejected(fileURL, rejectTypes) {
-		fmt.Printf("Skipping rejected file: %s\n", fileURL)
-		return
-	}
+	return html.Parse(resp.Body)
+}
 
-	fmt.Printf("Downloading: %s\n", fileURL)
-
-	// Call your OneDownload function here
-	downloader.AsyncDownload("", fileURL, "", domain)
+// isValidAttribute checks if an HTML tag attribute is valid for processing
+func isValidAttribute(tagName, attrKey string) bool {
+	return (tagName == "a" && attrKey == "href") ||
+		(tagName == "img" && attrKey == "src") ||
+		(tagName == "script" && attrKey == "src") ||
+		(tagName == "link" && attrKey == "href")
 }
 
 func resolveURL(base, rel string) string {
-	// If the relative URL starts with a scheme, return it as is.
+
+	// Remove fragment identifiers (anything starting with #)
+	if fragmentIndex := strings.Index(rel, "#"); fragmentIndex != -1 {
+		rel = rel[:fragmentIndex]
+	}
+
 	if strings.HasPrefix(rel, "http") {
 		return rel
 	}
 
-	// Handle protocol-relative URLs (starting with //)
-	if strings.HasPrefix(rel, "//") && !strings.Contains(rel[2:], "/") {
-		// Determine the protocol of the base URL
-
+	if strings.HasPrefix(rel, "//") {
 		protocol := "http:"
 		if strings.HasPrefix(base, "https") {
 			protocol = "https:"
@@ -120,28 +177,41 @@ func resolveURL(base, rel string) string {
 		return protocol + rel
 	}
 
-	// Handle relative paths
 	if strings.HasPrefix(rel, "/") {
-		// For absolute paths, return base URL without the last segment
 		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
 	}
 	if strings.HasPrefix(rel, "./") {
-		// For absolute paths, return base URL without the last segment
-		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
+		return strings.Join(strings.Split(base, "/")[:3], "/") + rel[1:]
 	}
-	// Handle paths that start with // but are not protocol-relative (e.g., //css/style.css)
 	if strings.HasPrefix(rel, "//") && strings.Contains(rel[2:], "/") {
-
 		baseParts := strings.Split(base, "/")
-		return baseParts[0] + "//" + baseParts[2] + rel[1:] // Treat it as a root-relative path
+		return baseParts[0] + "//" + baseParts[2] + rel[1:]
 	}
 
-	// Remove the last part of the base URL
 	baseParts := strings.Split(base, "/")
-	// baseParts = baseParts[:len(baseParts)-1] // remove last part
-
-	// Append the relative URL
 	return baseParts[0] + "//" + baseParts[2] + "/" + rel
+}
+
+func downloadAsset(fileURL, domain, rejectTypes string) {
+	muAssets.Lock()
+	if visitedAssets[fileURL] {
+		muAssets.Unlock()
+		return
+	}
+	visitedAssets[fileURL] = true
+	muAssets.Unlock()
+
+	if fileURL == "" || !strings.HasPrefix(fileURL, "http") {
+		fmt.Printf("Invalid URL: %s\n", fileURL)
+		return
+	}
+
+	if isRejected(fileURL, rejectTypes) {
+		fmt.Printf("Skipping rejected file: %s\n", fileURL)
+		return
+	}
+	fmt.Printf("Downloading: %s\n", fileURL)
+	MirrorAsyncDownload("", fileURL, "", domain)
 }
 
 func isRejected(url, rejectTypes string) bool {

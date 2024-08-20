@@ -26,7 +26,7 @@ func OneDownload(file, url, limit, directory string) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error: status %s\n", resp.Status)
+		fmt.Printf("Error: status %s url: [%s]\n", resp.Status, url)
 		return
 	}
 	fmt.Printf("Sending request, awaiting response... status %s\n", resp.Status)
@@ -34,7 +34,6 @@ func OneDownload(file, url, limit, directory string) {
 	contentLength := resp.ContentLength
 	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
-	fmt.Println(path)
 	// Set the output file name
 	var outputFile string
 	if file == "" {
@@ -44,7 +43,6 @@ func OneDownload(file, url, limit, directory string) {
 	} else {
 		outputFile = filepath.Join(path, file)
 	}
-
 	// Create the path if it doesn't exist
 	if path != "" {
 		err = os.MkdirAll(path, 0o755)
@@ -117,7 +115,6 @@ func OneDownload(file, url, limit, directory string) {
 		}
 	}
 
-	fmt.Println() // Move to the next line after download completes
 	fmt.Println() // Move to the next line after download completes
 
 	endTime := time.Now()

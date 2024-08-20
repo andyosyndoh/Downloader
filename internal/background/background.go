@@ -48,6 +48,5 @@ func DownloadInBackground(file, urlStr, rateLimit string) {
 			fmt.Println("Error during download:", err)
 			return
 		}
-
 	}()
 }
