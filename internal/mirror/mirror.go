@@ -7,8 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"downloaderex/internal/downloader"
-
 	"golang.org/x/net/html"
 )
 
@@ -19,6 +17,7 @@ var (
 	muPages       sync.Mutex
 	muAssets      sync.Mutex
 	semaphore     = make(chan struct{}, 50)
+	count         int
 )
 
 // DownloadPage downloads a page and its assets, recursively visiting links
@@ -50,27 +49,62 @@ func DownloadPage(url, rejectTypes string) {
 		defer func() { <-semaphore }() // Release the spot
 
 		baseURL := resolveURL(url, link)
+
 		baseURLDomain, err := extractDomain(baseURL)
 		if err != nil {
 			fmt.Println("Could not extract domain name for:", baseURLDomain, "Error:", err)
 			return
 		}
+
 		if baseURLDomain == domain {
 			if tagName == "a" {
-				DownloadPage(baseURL, rejectTypes)
+				// Check if the baseURL is the root or equivalent to index.html
+				if strings.HasSuffix(baseURL, "/") || strings.HasSuffix(baseURL, "/index.html") {
+					// Ensure index.html is downloaded first
+					if !visitedPages["http://"+baseURLDomain+"/index.html"] {
+						DownloadPage("http://"+baseURLDomain+"/index.html", rejectTypes)
+					}
+					// Recursively process other pages
+					DownloadPage(baseURL, rejectTypes)
+				} else {
+					// Process other pages as usual
+					DownloadPage(baseURL, rejectTypes)
+				}
 			}
+			// Download assets, regardless of index.html processing
 			downloadAsset(baseURL, domain, rejectTypes)
 		}
 	}
-
 	var wg sync.WaitGroup
 	var processNode func(n *html.Node)
+	processedPages := make(map[string]bool)
+
 	processNode = func(n *html.Node) {
 		if n.Type == html.ElementNode {
 			for _, attr := range n.Attr {
 				if isValidAttribute(n.Data, attr.Key) {
 					link := attr.Val
 					if link != "" {
+						baseURL := resolveURL(url, link)
+						baseURLDomain, err := extractDomain(baseURL)
+						if err != nil {
+							fmt.Println("Could not extract domain name for:", baseURLDomain, "Error:", err)
+							continue
+						}
+
+						// Process index.html first
+						if (strings.HasSuffix(url, ".com/") || strings.HasSuffix(url, ".com/index.html")) && count == 0 {
+							count++
+							if !processedPages["http://"+baseURLDomain+"/index.html"] {
+								wg.Add(1)
+								go func(link, tagName string) {
+									defer wg.Done()
+									handleLink(link, tagName)
+									processedPages[url] = true
+								}("http://"+baseURLDomain+"/index.html", n.Data)
+							}
+						}
+
 						wg.Add(1)
 						go func(link, tagName string) {
 							defer wg.Done()
@@ -84,10 +118,13 @@ func DownloadPage(url, rejectTypes string) {
 			processNode(c) // Recursively process child nodes
 		}
 	}
+
+	// Start processing the document
 	processNode(doc)
 
-	// Wait for all downloads to complete
+	// Wait for all goroutines to complete
 	wg.Wait()
+
 }
 
 func extractDomain(urlStr string) (string, error) {
@@ -122,6 +159,7 @@ func isValidAttribute(tagName, attrKey string) bool {
 }
 
 func resolveURL(base, rel string) string {
+
 	// Remove fragment identifiers (anything starting with #)
 	if fragmentIndex := strings.Index(rel, "#"); fragmentIndex != -1 {
 		rel = rel[:fragmentIndex]
@@ -143,7 +181,7 @@ func resolveURL(base, rel string) string {
 		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
 	}
 	if strings.HasPrefix(rel, "./") {
-		return strings.Join(strings.Split(base, "/")[:3], "/") + rel
+		return strings.Join(strings.Split(base, "/")[:3], "/") + rel[1:]
 	}
 	if strings.HasPrefix(rel, "//") && strings.Contains(rel[2:], "/") {
 		baseParts := strings.Split(base, "/")
@@ -172,9 +210,8 @@ func downloadAsset(fileURL, domain, rejectTypes string) {
 		fmt.Printf("Skipping rejected file: %s\n", fileURL)
 		return
 	}
-
 	fmt.Printf("Downloading: %s\n", fileURL)
-	downloader.AsyncDownload("", fileURL, "", domain)
+	MirrorAsyncDownload("", fileURL, "", domain)
 }
 
 func isRejected(url, rejectTypes string) bool {
