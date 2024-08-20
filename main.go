@@ -77,11 +77,13 @@ func main() {
 		return
 	}
 	if sourcefile != "" {
-
 		downloader.DownloadMultipleFiles(sourcefile, file, rateLimit, path)
 		return
 	}
-
+	if url == "" {
+		fmt.Println("Error: URL not provided.")
+		return
+	}
 	// Start the download
 	downloader.OneDownload(file, url, rateLimit, path)
 }
