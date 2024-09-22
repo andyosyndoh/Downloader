@@ -15,7 +15,7 @@ import (
 func convertLinks(htmlFilePath string) {
 	htmlFilePath = removeHTTP(htmlFilePath)
 
-	if IsFolder(htmlFilePath) {
+	if !strings.HasSuffix(htmlFilePath, ".html") {
 		return
 	}
 	// Open the HTML file for reading
@@ -105,20 +105,23 @@ func getLocalPath(originalURL string) string {
 
 // removeHTTP removes the http:// or https:// prefix from the URL.
 func removeHTTP(url string) string {
-	// if strings.HasSuffix(url, "/") {
-	// 	url += "index.html"
-	// } else {
-	// 	url += "/index.html"
-	// }
-	// Regular expression to match http:// or https://
+	// Regular expression to match the protocol (http or https) at the start of the URL
 	re := regexp.MustCompile(`^https?://`)
 
-	// Replace the matched prefix with an empty string
+	// Remove http or https from the URL
 	modifiedURL := re.ReplaceAllString(url, "")
 
-	// If the modified URL is equivalent to the original path, we return it as is
-	if modifiedURL == url {
-		return url
+	// Check if the URL is a base URL (i.e., domain only without a path)
+	// This regex checks if the modified URL is something like "example.com/"
+	isBaseURL := regexp.MustCompile(`^[^/]+/?$`).MatchString(modifiedURL)
+
+	// If the URL is a base URL, append "index.html" if it's not already present
+	if isBaseURL {
+		if strings.HasSuffix(modifiedURL, "/") {
+			modifiedURL += "index.html"
+		} else {
+			modifiedURL += "/index.html"
+		}
 	}
 
 	return modifiedURL
