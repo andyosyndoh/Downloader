@@ -28,13 +28,11 @@ func DownloadInBackground(file, urlStr, rateLimit string) {
 		fmt.Println("Error creating output directory:", err)
 		return
 	}
-
-	logFile := "wget-log"
 	cmd := exec.Command(os.Args[0], "-O="+outputName, "-P="+path, "--rate-limit="+rateLimit, "-b", urlStr)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
-	fmt.Println("Output will be written to", logFile)
+	fmt.Println("Output will be written to ‘wget-log’.")
 
 	// Start the command
 	if err := cmd.Start(); err != nil {

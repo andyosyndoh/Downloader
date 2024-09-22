@@ -48,9 +48,9 @@ func MirrorAsyncDownload(outputFileName, urlStr, limit, directory string) {
 	fullDirPath := filepath.Join(rootPath, relativeDirPath)
 	fileName := pathComponents[len(pathComponents)-1]
 
-	resp, err := http.Get(urlStr)
+	resp, err := downloader.HttpRequest(urlStr)
 	if err != nil {
-		fmt.Println("Error downloading file:", err)
+		fmt.Println(err)
 		return
 	}
 	defer resp.Body.Close()

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"downloaderex/internal/downloader"
+
 	"golang.org/x/net/html"
 )
 
@@ -26,6 +28,7 @@ func DownloadPage(url, rejectTypes string, convertLink bool, pathRejects string)
 		fmt.Println("Could not extract domain name for:", url, "Error:", err)
 		return
 	}
+	// fmt.Println(url)
 
 	muPages.Lock()
 	if visitedPages[url] {
@@ -74,11 +77,11 @@ func DownloadPage(url, rejectTypes string, convertLink bool, pathRejects string)
 					indexURL := strings.TrimRight(baseURL, "/") + "/index.html"
 					if !visitedPages[indexURL] {
 						downloadAsset(indexURL, domain, rejectTypes)
-						DownloadPage(indexURL, rejectTypes, convertLink, rejectTypes)
+						DownloadPage(indexURL, rejectTypes, convertLink, pathRejects)
 					}
 				} else {
 					// Process other pages as usual
-					DownloadPage(baseURL, rejectTypes, convertLink, rejectTypes)
+					DownloadPage(baseURL, rejectTypes, convertLink, pathRejects)
 				}
 			}
 			// Download assets, regardless of index.html processing
@@ -132,9 +135,9 @@ func DownloadPage(url, rejectTypes string, convertLink bool, pathRejects string)
 
 // fetchAndParsePage fetches the content of the URL and parses it as HTML
 func fetchAndParsePage(url string) (*html.Node, error) {
-	resp, err := http.Get(url)
+	resp, err := downloader.HttpRequest(url)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching URL: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
