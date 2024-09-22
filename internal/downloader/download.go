@@ -18,7 +18,7 @@ func OneDownload(file, url, limit, directory string) {
 	startTime := time.Now()
 	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
-	resp, err := http.Get(fileURL)
+	resp, err := HttpRequest(fileURL)
 	if err != nil {
 		fmt.Println("Error downloading file:", err)
 		return
@@ -93,20 +93,20 @@ func OneDownload(file, url, limit, directory string) {
 			downloaded += int64(n)
 
 			// Calculate and display the progress
-			progress := float64(downloaded) / float64(contentLength) * 100
+			progress := float64(downloaded) / float64(contentLength) * 50
 			speed := float64(downloaded) / time.Since(startDownload).Seconds()
 			timeRemaining := time.Duration(float64(contentLength-downloaded)/speed) * time.Second
 
 			// Update the same line with progress
 			fmt.Printf("\r%.2f KiB / %.2f KiB [", float64(downloaded)/1024, float64(contentLength)/1024)
-			for i := 0; i < 100; i++ {
+			for i := 0; i < 50; i++ {
 				if i < int(progress) {
 					fmt.Print("=")
 				} else {
 					fmt.Print(" ")
 				}
 			}
-			fmt.Printf("] %.2f%% %.2f KiB/s %s", progress, speed/1024, timeRemaining.String())
+			fmt.Printf("] %.2f%% %.2f KiB/s %s", (float64(downloaded)*100)/float64(contentLength), speed/1024, timeRemaining.String())
 
 		}
 
