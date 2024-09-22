@@ -1,14 +1,16 @@
 package fileManager
 
 import (
-	"downloaderex/internal/flags"
-	"downloaderex/internal/rateLimiter"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"downloaderex/internal/downloader"
+	"downloaderex/internal/flags"
+	"downloaderex/internal/rateLimiter"
 )
 
 func logToFile(logFile *os.File, message string) {
@@ -17,7 +19,7 @@ func logToFile(logFile *os.File, message string) {
 
 func Logger(file, url, limit string) {
 	// Open log file
-	logFile, err := os.OpenFile("wget-log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile("wget-log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Println("Error opening log file:", err)
 		return
@@ -28,7 +30,7 @@ func Logger(file, url, limit string) {
 
 	logToFile(logFile, fmt.Sprintf("Start at %s", startTime.Format("2006-01-02 15:04:05")))
 
-	resp, err := http.Get(fileURL)
+	resp, err := downloader.HttpRequest(fileURL)
 	if err != nil {
 		logToFile(logFile, fmt.Sprintf("Error downloading file: %v", err))
 		return
