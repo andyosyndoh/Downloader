@@ -88,6 +88,9 @@ func MirrorAsyncDownload(outputFileName, urlStr, limit, directory string) {
 			}
 		}
 	}
+	if fileExists(outputFileName) {
+		return
+	}
 
 	var out *os.File
 	out, err = os.Create(outputFileName)
