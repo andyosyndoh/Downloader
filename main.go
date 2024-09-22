@@ -56,8 +56,8 @@ func main() {
 	// }
 
 	if mirroring {
-		url, flagInput := mirror.GetMirrorUrl(args)
-		mirror.DownloadPage(url, flagInput)
+		url, flagInput, convertLinks, pathRejects := mirror.GetMirrorUrl(args)
+		mirror.DownloadPage(url, flagInput, convertLinks, pathRejects)
 		return
 	}
 
