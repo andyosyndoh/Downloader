@@ -24,10 +24,9 @@ type Inputs struct {
 	workInBackground bool     // whether to download in the background
 	log              bool     // whether to log the output
 	mirroring        bool     // whether to mirror a website
-	rejectFlag string
-	excludeFlag string
+	rejectFlag       string
+	excludeFlag      string
 	convertLinksFlag bool
-
 }
 
 func main() {
