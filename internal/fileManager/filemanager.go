@@ -28,7 +28,7 @@ func Logger(file, url, limit string) {
 	fileURL := url
 	startTime := time.Now()
 
-	logToFile(logFile, fmt.Sprintf("Start at %s", startTime.Format("2006-01-02 15:04:05")))
+	logToFile(logFile, fmt.Sprintf("start at %s", startTime.Format("2006-01-02 15:04:05")))
 
 	resp, err := downloader.HttpRequest(fileURL)
 	if err != nil {
@@ -41,10 +41,10 @@ func Logger(file, url, limit string) {
 		logToFile(logFile, fmt.Sprintf("Error: status %s\n", resp.Status))
 		return
 	}
-	logToFile(logFile, fmt.Sprintf("Sending request, awaiting response... status %s", resp.Status))
+	logToFile(logFile, fmt.Sprintf("sending request, awaiting response... status %s", resp.Status))
 
 	contentLength := resp.ContentLength
-	logToFile(logFile, fmt.Sprintf("Content size: %d bytes [~%.2fMB]", contentLength, float64(contentLength)/1024/1024))
+	logToFile(logFile, fmt.Sprintf("content size: %d bytes [~%.2fMB]", contentLength, float64(contentLength)/1024/1024))
 
 	outputFile := ""
 	if flags.OutputFileFlag(os.Args[1:]) {
@@ -54,7 +54,7 @@ func Logger(file, url, limit string) {
 		fileName := urlParts[len(urlParts)-1]
 		outputFile = "./" + fileName
 	}
-	logToFile(logFile, fmt.Sprintf("Saving file to: %s", outputFile))
+	logToFile(logFile, fmt.Sprintf("saving file to: %s", outputFile))
 
 	out, err := os.Create(outputFile)
 	if err != nil {
@@ -99,5 +99,5 @@ func Logger(file, url, limit string) {
 
 	endTime := time.Now()
 	logToFile(logFile, fmt.Sprintf("Downloaded [%s]", fileURL))
-	logToFile(logFile, fmt.Sprintf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05")))
+	logToFile(logFile, fmt.Sprintf("finished at %s\n", endTime.Format("2006-01-02 15:04:05")))
 }
