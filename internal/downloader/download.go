@@ -119,7 +119,7 @@ func OneDownload(file, url, limit, directory string) {
 
 	endTime := time.Now()
 	fmt.Printf("Downloaded [%s]\n", fileURL)
-	fmt.Printf("Finished at %s", endTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
 }
 
 // ExpandPath expands shorthand notations to full paths
