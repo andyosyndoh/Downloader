@@ -16,7 +16,7 @@ func OneDownload(file, url, limit, directory string) {
 	path := ExpandPath(directory)
 	fileURL := url
 	startTime := time.Now()
-	fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
 	resp, err := HttpRequest(fileURL)
 	if err != nil {
@@ -29,17 +29,17 @@ func OneDownload(file, url, limit, directory string) {
 		fmt.Printf("Error: status %s url: [%s]\n", resp.Status, url)
 		return
 	}
-	fmt.Printf("Sending request, awaiting response... status %s\n", resp.Status)
+	fmt.Printf("sending request, awaiting response... status %s\n", resp.Status)
 
 	contentLength := resp.ContentLength
-	fmt.Printf("Content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
+	fmt.Printf("content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
 
 	// Set the output file name
 	var outputFile string
 	if file == "" {
 		urlParts := strings.Split(fileURL, "/")
-		fileName := urlParts[len(urlParts)-1]
-		outputFile = filepath.Join(path, fileName)
+		file = urlParts[len(urlParts)-1]
+		outputFile = filepath.Join(path, file)
 	} else {
 		outputFile = filepath.Join(path, file)
 	}
@@ -52,11 +52,17 @@ func OneDownload(file, url, limit, directory string) {
 		}
 	}
 	temp := ""
-	if path == "" {
+	if file != "" && directory != "" {
+		file = "/" + file
+		fmt.Printf("saving file to: %s%s\n", directory, file)
+	} else if path == "" && file != ""{
 		temp = "./"
+		fmt.Printf("saving file to: %s%s\n", temp, file)
+	} else {
+		temp = "./"
+		fmt.Printf("saving file to: %s%s\n", temp, file)
 	}
 
-	fmt.Printf("Saving file to: %s%s\n", temp, outputFile)
 
 	out, err := os.Create(outputFile)
 	if err != nil {
@@ -116,10 +122,11 @@ func OneDownload(file, url, limit, directory string) {
 	}
 
 	fmt.Println() // Move to the next line after download completes
+	fmt.Println()
 
 	endTime := time.Now()
 	fmt.Printf("Downloaded [%s]\n", fileURL)
-	fmt.Printf("Finished at %s", endTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
 }
 
 // ExpandPath expands shorthand notations to full paths
