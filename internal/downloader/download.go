@@ -38,8 +38,8 @@ func OneDownload(file, url, limit, directory string) {
 	var outputFile string
 	if file == "" {
 		urlParts := strings.Split(fileURL, "/")
-		fileName := urlParts[len(urlParts)-1]
-		outputFile = filepath.Join(path, fileName)
+		file = urlParts[len(urlParts)-1]
+		outputFile = filepath.Join(path, file)
 	} else {
 		outputFile = filepath.Join(path, file)
 	}
@@ -52,11 +52,17 @@ func OneDownload(file, url, limit, directory string) {
 		}
 	}
 	temp := ""
-	if file != "" {
+	if file != "" && directory != "" {
+		file = "/" + file
+		fmt.Printf("saving file to: %s%s\n", directory, file)
+	} else if path == "" && file != ""{
 		temp = "./"
+		fmt.Printf("saving file to: %s%s\n", temp, file)
+	} else {
+		temp = "./"
+		fmt.Printf("saving file to: %s%s\n", temp, file)
 	}
 
-	fmt.Printf("saving file to: %s%s\n", temp, file)
 
 	out, err := os.Create(outputFile)
 	if err != nil {
