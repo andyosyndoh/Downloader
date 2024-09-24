@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -18,16 +17,9 @@ func convertLinks(htmlFilePath string) {
 	if !strings.HasSuffix(htmlFilePath, ".html") {
 		return
 	}
-	// Open the HTML file for reading
-	htmlFile, err := os.Open(htmlFilePath)
-	if err != nil {
-		fmt.Println("Error opening HTML file:", err)
-		return
-	}
-	defer htmlFile.Close()
 
 	// Read the HTML file content
-	htmlData, err := ioutil.ReadAll(htmlFile)
+	htmlData, err := os.ReadFile(htmlFilePath)
 	if err != nil {
 		fmt.Println("Error reading HTML file:", err)
 		return
@@ -52,7 +44,7 @@ func convertLinks(htmlFilePath string) {
 	}
 
 	// Save the modified HTML back to the file
-	err = ioutil.WriteFile(htmlFilePath, []byte(modifiedHTML.String()), 0o644)
+	err = os.WriteFile(htmlFilePath, []byte(modifiedHTML.String()), 0o644)
 	if err != nil {
 		fmt.Println("Error writing modified HTML file:", err)
 		return

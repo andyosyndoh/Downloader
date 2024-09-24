@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"downloaderex/internal/background"
 	"downloaderex/internal/rateLimiter"
 )
 
@@ -16,6 +17,11 @@ func OneDownload(file, url, limit, directory string) {
 	path := ExpandPath(directory)
 	fileURL := url
 	startTime := time.Now()
+	toDisplay, err := background.LoadShowProgressState()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	fmt.Printf("start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
 	resp, err := HttpRequest(fileURL)
@@ -55,14 +61,13 @@ func OneDownload(file, url, limit, directory string) {
 	if file != "" && directory != "" {
 		file = "/" + file
 		fmt.Printf("saving file to: %s%s\n", directory, file)
-	} else if path == "" && file != ""{
+	} else if path == "" && file != "" {
 		temp = "./"
 		fmt.Printf("saving file to: %s%s\n", temp, file)
 	} else {
 		temp = "./"
 		fmt.Printf("saving file to: %s%s\n", temp, file)
 	}
-
 
 	out, err := os.Create(outputFile)
 	if err != nil {
@@ -82,7 +87,9 @@ func OneDownload(file, url, limit, directory string) {
 	var downloaded int64
 	startDownload := time.Now()
 
-	fmt.Print("Downloading... ")
+	if toDisplay {
+		fmt.Print("Downloading... ")
+	}
 	for {
 		n, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
@@ -98,21 +105,24 @@ func OneDownload(file, url, limit, directory string) {
 			// Update the downloaded size
 			downloaded += int64(n)
 
-			// Calculate and display the progress
-			progress := float64(downloaded) / float64(contentLength) * 50
-			speed := float64(downloaded) / time.Since(startDownload).Seconds()
-			timeRemaining := time.Duration(float64(contentLength-downloaded)/speed) * time.Second
+			if toDisplay {
+				// Calculate and display the progress
+				progress := float64(downloaded) / float64(contentLength) * 50
+				speed := float64(downloaded) / time.Since(startDownload).Seconds()
+				timeRemaining := time.Duration(float64(contentLength-downloaded)/speed) * time.Second
 
-			// Update the same line with progress
-			fmt.Printf("\r%.2f KiB / %.2f KiB [", float64(downloaded)/1024, float64(contentLength)/1024)
-			for i := 0; i < 50; i++ {
-				if i < int(progress) {
-					fmt.Print("=")
-				} else {
-					fmt.Print(" ")
+				// Update the same line with progress
+				fmt.Printf("\r%.2f KiB / %.2f KiB [", float64(downloaded)/1024, float64(contentLength)/1024)
+				for i := 0; i < 50; i++ {
+					if i < int(progress) {
+						fmt.Print("=")
+					} else {
+						fmt.Print(" ")
+					}
 				}
+				fmt.Printf("] %.2f%% %.2f KiB/s %s", (float64(downloaded)*100)/float64(contentLength), speed/1024, timeRemaining.String())
+
 			}
-			fmt.Printf("] %.2f%% %.2f KiB/s %s", (float64(downloaded)*100)/float64(contentLength), speed/1024, timeRemaining.String())
 
 		}
 
@@ -120,13 +130,17 @@ func OneDownload(file, url, limit, directory string) {
 			break
 		}
 	}
-
-	fmt.Println() // Move to the next line after download completes
-	fmt.Println()
+	if toDisplay {
+		fmt.Println() // Move to the next line after download completes
+		fmt.Println()
+	}
 
 	endTime := time.Now()
 	fmt.Printf("Downloaded [%s]\n", fileURL)
 	fmt.Printf("finished at %s\n", endTime.Format("2006-01-02 15:04:05"))
+	if !toDisplay {
+		fmt.Println()
+	}
 }
 
 // ExpandPath expands shorthand notations to full paths
