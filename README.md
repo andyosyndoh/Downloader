@@ -65,7 +65,7 @@ Where flags (which are optional) can be any of:
         ```
 ## Implementation
 
-The main entry point of the program is located in `main.go`, which processes command-line arguments to determine the desired operations. The program features several packages in `/internal` that contains functions to handle various functionalities. Highligted are some of the primary functions in each package
+The main entry point of the program is located in `main.go`, which parses command-line arguments and sets values in an input struct to determine the desired operations. The program features several packages in `/internal` that contains functions to handle various functionalities. Highligted are some of the primary functions in each package
 
 ####  donwloader package
 
@@ -83,7 +83,7 @@ The main entry point of the program is located in `main.go`, which processes com
 
 ## Contributors
 This project was a collaboration of  three apprentices from [z01Kisumu](https://www.zone01kisumu.ke/). 
-1. [Nicholas Otieno](https://github.com/)
+1. Nicholas Otieno
 2. [Hillary Okello](https://github.com/HilaryOkello)
 3. [Raymond Caleb](https://github.com/Raymond9734)
 4. [Andrew Osindo](https://github.com/andyosyndoh) 
