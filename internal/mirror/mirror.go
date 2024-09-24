@@ -202,32 +202,3 @@ func downloadAsset(fileURL, domain, rejectTypes string) {
 	fmt.Printf("Downloading: %s\n", fileURL)
 	MirrorAsyncDownload("", fileURL, "", domain)
 }
-
-func GetMirrorUrl(args []string) (string, string, bool, string) {
-	var url string
-	var flagInput string
-	var pathRejects string
-	var convertLinks bool = false
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "http") {
-			url = arg
-		}
-		if strings.HasPrefix(arg, "-R=") {
-			flagInput = strings.TrimPrefix(arg, "-R=")
-		}
-		if strings.HasPrefix(arg, "--reject=") {
-			flagInput = strings.TrimPrefix(arg, "--reject=")
-		}
-		if arg == "--convert-links" {
-			convertLinks = true
-		}
-		if strings.HasPrefix(arg, "-X=") {
-			pathRejects = strings.TrimPrefix(arg, "-X=")
-		}
-		if strings.HasPrefix(arg, "--exclude") {
-			pathRejects = strings.TrimPrefix(arg, "--exclude")
-		}
-
-	}
-	return url, flagInput, convertLinks, pathRejects
-}
