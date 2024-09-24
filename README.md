@@ -16,27 +16,39 @@ To be able to run the program, you should have Go installed. You can download an
 
 ## Usage
 
+To clone the projects:
+```bash
+    git clone https://learn.zone01kisumu.ke/git/nichotieno/wget.git
+    cd wget
+```
+
 The structure of the command for using the program is:
 ```bash
 go run . [flags] URL
 ```
 Where flags (which are optional) can be any of:
 
- 1. `-O` followed by the name you want to name the file. For example:
+ 1. `-B` downloads a file immediately to the background with the output redirected to a log file. When a command with this flag is executed, it immediately logs to the terminal `Output will be written to "wget-log"`.
+    ```bash
+    $ go run . -B https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
+    Output will be written to "wget-log".
+    ```
+
+ 2. `-O` followed by the name you want to name the file. For example:
   
     ```bash
     $ go run . -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
- 2. `-P` followed by the path to where you want to save the file. For example:
+ 3. `-P` followed by the path to where you want to save the file. For example:
     ```bash
     $ go run . -P=~/Downloads/ -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
- 3. `--rate-limit` followed by the speed you want to throttle your download to. For example:
+ 4. `--rate-limit` followed by the speed you want to throttle your download to. For example:
     ```bash
     go run . --rate-limit=400k https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
     Where the rate limit can be specified in kilobytes, `k`, or in megabytes, `M`
- 4. `-i` flag followed by a file name that will contain all links that are to be downloaded, where you want to download multiple files asynchronously. For example:
+ 5. `-i` flag followed by a file name that will contain all links that are to be downloaded, where you want to download multiple files asynchronously. For example:
      ```bash
     $ ls
     download.txt   main.go
@@ -46,7 +58,7 @@ Where flags (which are optional) can be any of:
     $ go run . -i=download.txt
     ```
     **Note**: In this case, the URL will not be passed as the second argument.
- 5. The `--mirror` falg can be used when you want to download a websites resources to be able to use parts of website offline. Some optional flags will go with --mirror. The basic syntax will be:
+ 6. The `--mirror` falg can be used when you want to download a websites resources to be able to use parts of website offline. Some optional flags will go with --mirror. The basic syntax will be:
     ```bash
     go run . --mirror [mirror flags] https://example.com
     ```
