@@ -86,6 +86,7 @@ func main() {
 func ParseArgs() Inputs {
 	input := &Inputs{}
 	mirrorMode := false // Flag to track if --mirror is set
+	track := false
 
 	// Iterate over the command-line arguments manually
 	for _, arg := range os.Args[1:] {
@@ -129,6 +130,7 @@ func ParseArgs() Inputs {
 			input.workInBackground = true // Enable background downloading
 		} else if strings.HasPrefix(arg, "-i=") {
 			input.sourcefile = arg[len("-i="):] // Capture source file
+			track = true
 		} else if strings.HasPrefix(arg, "http") {
 			// This must be the URL
 			input.url = arg
@@ -156,15 +158,16 @@ func ParseArgs() Inputs {
 	}
 
 	// Ensure URL is provided
-	if input.url == "" {
+	if input.url == "" && !track {
 		fmt.Println("Error: URL not provided.")
 		os.Exit(1)
-	}
-	// Validate the URL
-	err := validateURL(input.url)
-	if err != nil {
-		fmt.Println("Error: invalid URL provided")
-		os.Exit(1)
+
+		// Validate the URL
+		err := validateURL(input.url)
+		if err != nil {
+			fmt.Println("Error: invalid URL provided")
+			os.Exit(1)
+		}
 	}
 
 	// Debugging prints to confirm that the flags are captured correctly
