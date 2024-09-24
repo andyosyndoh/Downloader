@@ -132,6 +132,8 @@ func ParseArgs() Inputs {
 		} else if strings.HasPrefix(arg, "http") {
 			// This must be the URL
 			input.url = arg
+		} else if strings.HasPrefix(arg, "-b") {
+			input.log = true
 		} else {
 			fmt.Printf("Error: Unrecognized argument '%s'\n", arg)
 			os.Exit(1)
