@@ -156,6 +156,7 @@ func TestOneDownload(t *testing.T) {
 			}
 		})
 	}
+	defer os.RemoveAll("./downloads")
 }
 
 func TestExpandPath(t *testing.T) {
