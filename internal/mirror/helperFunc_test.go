@@ -129,4 +129,136 @@ func Test_contains(t *testing.T) {
 	}
 }
 
+func Test_fileExists(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Existing file",
+			args: args{path: "./internal/flags/flag.go"},
+			want: true,
+		},
+		{
+			name: "Non-existing file",
+			args: args{path: "testdata/non_existing_file.txt"},
+			want: false,
+		},
+		{
+			name: "Existing directory",
+			args: args{path: "./internal"},
+			want: true,
+		},
+		{
+			name: "Non-existing directory",
+			args: args{path: "testdata/non_existing_dir"},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := fileExists(tt.args.path); got != tt.want {
+				t.Errorf("fileExists() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_extractDomain(t *testing.T) {
+	type args struct {
+		urlStr string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "Valid URL with subdomain",
+			args:    args{urlStr: "https://www.example.com/page"},
+			want:    "www.example.com",
+			wantErr: false,
+		},
+		{
+			name:    "Valid URL without subdomain",
+			args:    args{urlStr: "http://example.com"},
+			want:    "example.com",
+			wantErr: false,
+		},
+		{
+			name:    "Valid URL with port",
+			args:    args{urlStr: "https://example.com:8080/page"},
+			want:    "example.com",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractDomain(tt.args.urlStr)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("extractDomain() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("extractDomain() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isValidAttribute(t *testing.T) {
+	type args struct {
+		tagName string
+		attrKey string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Valid a href",
+			args: args{tagName: "a", attrKey: "href"},
+			want: true,
+		},
+		{
+			name: "Valid img src",
+			args: args{tagName: "img", attrKey: "src"},
+			want: true,
+		},
+		{
+			name: "Valid script src",
+			args: args{tagName: "script", attrKey: "src"},
+			want: true,
+		},
+		{
+			name: "Valid link href",
+			args: args{tagName: "link", attrKey: "href"},
+			want: true,
+		},
+		{
+			name: "Invalid tag",
+			args: args{tagName: "div", attrKey: "class"},
+			want: false,
+		},
+		{
+			name: "Invalid attribute for valid tag",
+			args: args{tagName: "a", attrKey: "class"},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isValidAttribute(tt.args.tagName, tt.args.attrKey); got != tt.want {
+				t.Errorf("isValidAttribute() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 
