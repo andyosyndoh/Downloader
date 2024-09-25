@@ -112,7 +112,7 @@ func OneDownload(file, url, limit, directory string) {
 				timeRemaining := time.Duration(float64(contentLength-downloaded)/speed) * time.Second
 
 				// Update the same line with progress
-				fmt.Printf("\r%.2f KiB / %.2f KiB [", float64(downloaded)/1024, float64(contentLength)/1024)
+				fmt.Printf("\r %.2f KiB / %.2f KiB [", float64(downloaded)/1024, float64(contentLength)/1024)
 				for i := 0; i < 50; i++ {
 					if i < int(progress) {
 						fmt.Print("=")
