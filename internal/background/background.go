@@ -42,7 +42,7 @@ func DownloadInBackground(file, urlStr, rateLimit string) {
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
-	fmt.Println("Output will be written to ‘wget-log’.")
+	fmt.Println("Output will be written to \"wget-log\".")
 
 	// Start the command
 	if err := cmd.Start(); err != nil {
