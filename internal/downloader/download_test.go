@@ -216,13 +216,6 @@ func TestExpandPath(t *testing.T) {
 			},
 			want: "/usr/local/bin", // Absolute paths should remain unchanged
 		},
-		{
-			name: "Empty path",
-			args: args{
-				path: "",
-			},
-			want: "/home/rayzy/gitea/wget/internal/downloader", 
-		},
 	}
 
 	for _, tt := range tests {
