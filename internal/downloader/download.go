@@ -38,7 +38,7 @@ func OneDownload(file, url, limit, directory string) {
 	fmt.Printf("sending request, awaiting response... status %s\n", resp.Status)
 
 	contentLength := resp.ContentLength
-	fmt.Printf("content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1024/1024)
+	fmt.Printf("content size: %d bytes [~%.2fMB]\n", contentLength, float64(contentLength)/1000000)
 
 	// Set the output file name
 	var outputFile string
