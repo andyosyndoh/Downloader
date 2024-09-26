@@ -84,6 +84,12 @@ func ParseArgs() Inputs {
 			os.Exit(1)
 		}
 	}
+	if input.WorkInBackground {
+		if input.Sourcefile != "" || input.Path != "" {
+			fmt.Println("-B flag shpuld not be used with -i or -P flags")
+			os.Exit(1)
+		}
+	}
 
 	// Check for invalid flag combinations if --mirror is provided
 	if input.Mirroring {
