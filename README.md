@@ -30,22 +30,22 @@ Where flags (which are optional) can be any of:
 
  1. `-B` downloads a file immediately to the background with the output redirected to a log file. When a command with this flag is executed, it immediately logs to the terminal `Output will be written to "wget-log"`.
     ```bash
-    $ go run . -B https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
+    $ go run ./cmd/app -B https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     Output will be written to "wget-log".
     ```
 
  2. `-O` followed by the name you want to name the file. For example:
   
     ```bash
-    $ go run . -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
+    $ go run ./cmd/app -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
  3. `-P` followed by the path to where you want to save the file. For example:
     ```bash
-    $ go run . -P=~/Downloads/ -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
+    $ go run ./cmd/app -P=~/Downloads/ -O=meme.jpg https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
  4. `--rate-limit` followed by the speed you want to throttle your download to. For example:
     ```bash
-    go run . --rate-limit=400k https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
+    go go run ./cmd/app --rate-limit=400k https://pbs.twimg.com/media/EMtmPFLWkAA8CIS.jpg
     ```
     Where the rate limit can be specified in kilobytes, `k`, or in megabytes, `M`
  5. `-i` flag followed by a file name that will contain all links that are to be downloaded, where you want to download multiple files asynchronously. For example:
@@ -55,25 +55,25 @@ Where flags (which are optional) can be any of:
     $ cat download.txt
     http://ipv4.download.thinkbroadband.com/20MB.zip
     http://ipv4.download.thinkbroadband.com/10MB.zip
-    $ go run . -i=download.txt
+    $ go run ./cmd/app -i=download.txt
     ```
     **Note**: In this case, the URL will not be passed as the second argument.
  6. The `--mirror` falg can be used when you want to download a websites resources to be able to use parts of website offline. Some optional flags will go with --mirror. The basic syntax will be:
     ```bash
-    go run . --mirror [mirror flags] https://example.com
+    go run ./cmd/app --mirror [mirror flags] https://example.com
     ```
     The optional `--mirror` flags include:
       - Directory-Based Limits  (`--reject` short hand `-R`). Tthis flag will have a list of file suffixes that the program will avoid downloading during the retrieval.
         ```bash
-        go run . --mirror -R=jpg,gif https://example.com
+        go run ./cmd/app --mirror -R=jpg,gif https://example.com
         ```
      - Directory-Based Limits (`--exclude` short hand `-X`). This flag will have a list of paths that the program will avoid to follow and retrieve. So if the URL is https://example.com and the directories are /js, /css and /assets you can avoid any path by using -X=/js,/assets. The fs will now just have /css.
         ```bash
-        $ go run . --mirror -X=/assets,/css https://example.com
+        $ go run ./cmd/app --mirror -X=/assets,/css https://example.com
         ```
     - Convert Links for Offline Viewing (`--convert-links`).  This flag will convert the links in the downloaded files so that they can be viewed offline, changing them to point to the locally downloaded resources instead of the original URLs.
         ```bash
-        $ go run . --mirror --convert-links https://example.com
+        $ go run ./cmd/app --mirror --convert-links https://example.com
         ```
 ## Implementation
 
