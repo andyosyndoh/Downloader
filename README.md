@@ -24,7 +24,7 @@ To clone the projects:
 
 The structure of the command for using the program is:
 ```bash
-go run . [flags] URL
+go run ./cmd/app [flags] URL
 ```
 Where flags (which are optional) can be any of:
 
