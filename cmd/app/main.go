@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"downloaderex/internal/background"
-	"downloaderex/internal/downloader"
-	"downloaderex/internal/flags"
-	"downloaderex/internal/mirror"
+	"wiget/internal/background"
+	"wiget/internal/downloader"
+	"wiget/internal/flags"
+	"wiget/internal/mirror"
 )
 
 func main() {
