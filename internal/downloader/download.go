@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"downloaderex/internal/background"
-	"downloaderex/internal/rateLimiter"
+	"wiget/internal/background"
+	"wiget/internal/rateLimiter"
 )
 
 func OneDownload(file, url, limit, directory string) {
