@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"downloaderex/internal/rateLimiter"
+	"wiget/internal/rateLimiter"
 )
 
 func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
