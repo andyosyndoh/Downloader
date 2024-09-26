@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"downloaderex/internal/downloader"
+	"wiget/internal/downloader"
 
 	"golang.org/x/net/html"
 )

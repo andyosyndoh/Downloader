@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"downloaderex/internal/downloader"
+	"wiget/internal/downloader"
 )
 
 // Global map to keep track of processed URLs
