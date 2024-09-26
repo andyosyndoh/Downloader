@@ -95,7 +95,7 @@ The main entry point of the program is located in `main.go`, which parses comman
 
 ## Contributors
 This project was a collaboration of  three apprentices from [z01Kisumu](https://www.zone01kisumu.ke/). 
-1. Nicholas Otieno
+1. [Nicholas Otieno](https://learn.zone01kisumu.ke/git/nichotieno)
 2. [Hillary Okello](https://github.com/HilaryOkello)
 3. [Raymond Caleb](https://github.com/Raymond9734)
 4. [Andrew Osindo](https://github.com/andyosyndoh) 
