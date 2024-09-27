@@ -1,0 +1,7 @@
+# The general flow of working with Go and K8s is as follows:
+
+# Create Kubernetes ClientSet
+# Create Kubernetes ClientSet With Service Account and Token
+# Create Roles and Role binding
+# Apply any type of Kubernetes config file
+# Retrieve the Status of Kubernetes resource

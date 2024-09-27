@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"downloaderex/internal/rateLimiter"
+	"wiget/internal/rateLimiter"
 )
 
 func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
@@ -37,22 +37,13 @@ func DownloadMultipleFiles(filePath, outputFile, limit, directory string) {
 	}
 	wg.Wait()
 }
+
 func AsyncDownload(outputFileName, url, limit, directory string) {
 	path := ExpandPath(directory)
-	// startTime := time.Now()
-	// fmt.Printf("Start at %s\n", startTime.Format("2006-01-02 15:04:05"))
 
-	req, err := http.NewRequest("GET", url, nil)
+	resp, err := HttpRequest(url)
 	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
-	req.Header.Set("Referer", "http://ipv4.download.thinkbroadband.com/") // Change to a referer appropriate for the URL
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println("Error downloading file:", err)
+		fmt.Println(err)
 		return
 	}
 	defer resp.Body.Close()
@@ -91,6 +82,7 @@ func AsyncDownload(outputFileName, url, limit, directory string) {
 	}
 
 	buffer := make([]byte, 32*1024) // 32 KB buffer size
+	fmt.Printf("Downloading.... [%s]\n", url)
 	var downloaded int64
 	for {
 		n, err := reader.Read(buffer)

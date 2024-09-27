@@ -1,4 +1,4 @@
-module downloaderex
+module wiget
 
 go 1.18
 
